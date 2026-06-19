@@ -37,9 +37,9 @@
                 </h2>
                 <p class="text-xs text-slate-500 mb-3">La IA leerá los prefijos del CSV cargado y sugerirá las cuentas contables (Ej. 4145, 2408, 1305).</p>
                 <input type="password" id="apiKey" value="AIzaSyCcPXu0d0_WPd0nYpNH76_mUZU6NDDGL48" placeholder="Ingresa tu API Key" class="w-full text-sm p-2 border border-slate-300 rounded mb-3 focus:ring-2 focus:ring-indigo-500 outline-none">
-                <button onclick="autoAssignWithAI()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2 rounded transition">
-                    Autocompletar Reglas con IA
-                </button>
+                <button id="btnAi" type="button" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2 rounded transition">
+    Autocompletar Reglas con IA
+</button>
             </div>
 
             <!-- Tarjeta de Reglas Manuales -->
@@ -323,6 +323,8 @@
                 btn.disabled = false;
             }
         }
+        // Conectar el botón de la IA con la función usando un EventListener
+        document.getElementById('btnAi').addEventListener('click', autoAssignWithAI);
     </script>
 </body>
 </html>
