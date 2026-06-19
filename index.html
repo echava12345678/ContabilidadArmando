@@ -278,16 +278,16 @@ tr:hover td{background:var(--surface3)}
       <div class="card">
         <div class="card-title">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          Configuración API Gemini
+          Configuración API Groq
         </div>
         <div class="api-row">
-          <input class="api-input" type="password" id="apiKey" value="AIzaSyCcPXu0d0_WPd0nYpNH76_mUZU6NDDGL48" placeholder="AIzaSy..." 
+          <input class="api-input" type="password" id="apiKey" value="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" placeholder="gsk_..." 
                  oninput="validateApiKey()" autocomplete="off">
           <button class="btn btn-outline btn-sm" onclick="toggleApiKey()">👁</button>
         </div>
         <p style="font-size:0.75rem;color:var(--text3);margin-top:6px">
           Tu API key se usa solo en esta sesión y nunca se almacena. 
-          <a href="https://aistudio.google.com" style="color:var(--accent2);text-decoration:none" target="_blank">Obtener en aistudio.google.com ↗</a>
+          <a href="https://console.groq.com/keys" style="color:var(--accent2);text-decoration:none" target="_blank">Obtener en console.groq.com ↗</a>
         </p>
         <div id="apiStatus" style="display:none;margin-top:8px"></div>
       </div>
@@ -485,7 +485,6 @@ function sheetToData(workbook) {
   const sheet = workbook.Sheets[sheetName];
   const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
   if (!raw.length) return { headers: [], rows: [] };
-  // Guardar headers originales y también versión limpia
   const headersRaw = raw[0].map(h => String(h || ''));
   const headers = headersRaw.map(h => h.trim());
   const rows = raw.slice(1).map(rowArr => {
@@ -592,7 +591,6 @@ function handleFile(input) {
 function finishProcessing(headers, rows, fileName) {
   const prefixCol = findPrefixColumn(headers);
   if (!prefixCol) {
-    // Mostrar las columnas encontradas para debug
     const colsFound = headers.filter(Boolean).join(', ') || '(ninguna)';
     showNotif('⚠️ No se encontró columna "Prefijo". Columnas detectadas: ' + colsFound, 'error');
     const statusEl = document.getElementById('fileStatus');
@@ -604,7 +602,6 @@ function finishProcessing(headers, rows, fileName) {
 
   const prefixes = {};
   rows.forEach(row => {
-    // Buscar el valor por la clave exacta del header, o por cualquier clave que normalice a 'prefijo'
     let val = row[prefixCol];
     if (val === undefined) {
       const realKey = Object.keys(row).find(k => normalizeKey(k) === 'prefijo');
@@ -701,7 +698,6 @@ function togglePrefix(prefix) {
 
 function updatePrefixAccount(prefix, field, val) {
   prefixMap[prefix][field] = val.trim();
-  // Refresh badge
   const card = document.getElementById('pc-' + prefix);
   const header = card.querySelector('.prefix-header');
   const existing = header.querySelector('.pill');
@@ -709,7 +705,6 @@ function updatePrefixAccount(prefix, field, val) {
   const badge = getConfigBadge(prefix);
   if (badge) header.querySelector('.prefix-count').insertAdjacentHTML('afterend', badge);
 
-  // Update configured count
   const configured = Object.values(prefixMap).filter(d =>
     d.cuentaIngreso || d.cuentaIVA || d.cuentaCobrar
   ).length;
@@ -743,7 +738,6 @@ function generateCSV() {
       } else if (colKey === 'cuenta conable') {
         outRow.push(config.cuentaCobrar || '');
       } else {
-        // Try to match from original CSV (case-insensitive)
         const matchKey = Object.keys(row).find(k =>
           k.trim().toLowerCase() === colKey.toLowerCase()
         );
@@ -754,10 +748,7 @@ function generateCSV() {
     rows.push(outRow);
   });
 
-  // Guardar filas para preview y descarga
   generatedRows = rows;
-
-  // Generar también CSV plano (coma) para compatibilidad
   generatedCSV = rows.map(r =>
     r.map(v => {
       const s = String(v || '');
@@ -765,7 +756,6 @@ function generateCSV() {
     }).join(',')
   ).join('\n');
 
-  // Preview
   renderPreview(rows.slice(0, 6), rows.length - 1);
   document.getElementById('previewSection').style.display = 'block';
   document.getElementById('statGenerated').textContent = (parseInt(document.getElementById('statGenerated').textContent) || 0) + 1;
@@ -828,8 +818,6 @@ function downloadCSV() {
   try {
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(generatedRows);
-
-    // Auto ancho de columnas basado en contenido
     const colWidths = generatedRows[0].map((_, ci) => {
       const maxLen = generatedRows.reduce((acc, row) => {
         const v = String(row[ci] || '');
@@ -838,21 +826,17 @@ function downloadCSV() {
       return { wch: Math.min(Math.max(maxLen + 2, 10), 40) };
     });
     ws['!cols'] = colWidths;
-
-    // Estilo encabezados (fila 1 en negrita)
     const range = XLSX.utils.decode_range(ws['!ref']);
     for (let C = range.s.c; C <= range.e.c; C++) {
       const addr = XLSX.utils.encode_cell({ r: 0, c: C });
       if (!ws[addr]) continue;
       ws[addr].s = { font: { bold: true }, fill: { fgColor: { rgb: 'D6E4F7' } }, alignment: { horizontal: 'center' } };
     }
-
     XLSX.utils.book_append_sheet(wb, ws, 'Contabilidad');
     const fname = 'contabilidad_' + new Date().toISOString().slice(0,10) + '.xlsx';
     XLSX.writeFile(wb, fname);
     showNotif('📥 Excel descargado: ' + fname, 'success');
   } catch(e) {
-    // Fallback a CSV si falla XLSX
     const blob = new Blob(['\uFEFF' + generatedCSV], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -953,14 +937,14 @@ function handleFileAI(input) {
 function validateApiKey() {
   const key = document.getElementById('apiKey').value.trim();
   const status = document.getElementById('apiStatus');
-  if (key.startsWith('AIzaSy')) {
+  if (key.startsWith('gsk_')) {
     status.style.display = 'block';
-    status.innerHTML = '<div class="status-bar"><div class="status-dot"></div><span>API key de Gemini válida</span></div>';
+    status.innerHTML = '<div class="status-bar"><div class="status-dot"></div><span>API key de Groq válida</span></div>';
     document.getElementById('statusAPI').textContent = '✓ Configurada';
     document.getElementById('statusAPI').className = 'pill pill-green';
   } else if (key.length > 0) {
     status.style.display = 'block';
-    status.innerHTML = '<div style="color:var(--warning);font-size:.78rem;padding:6px 0">⚠️ El formato esperado es AIzaSy...</div>';
+    status.innerHTML = '<div style="color:var(--warning);font-size:.78rem;padding:6px 0">⚠️ El formato esperado es gsk_...</div>';
     document.getElementById('statusAPI').textContent = '⚠ Formato inválido';
     document.getElementById('statusAPI').className = 'pill pill-yellow';
   } else {
@@ -1017,13 +1001,13 @@ async function sendAIMessage() {
 
   const apiKey = document.getElementById('apiKey').value.trim();
   if (!apiKey) {
-    showNotif('⚠️ Configura tu API key de Gemini primero', 'error');
+    showNotif('⚠️ Configura tu API key de Groq primero', 'error');
     return;
   }
 
   addAIMessage('user', text);
   input.value = '';
-  aiHistory.push({ role: 'user', parts: [{ text: buildAIContext(text) }] });
+  aiHistory.push({ role: 'user', content: buildAIContext(text) });
 
   const btn = document.getElementById('sendBtn');
   btn.innerHTML = '<span><div class="spin"></div></span>';
@@ -1032,30 +1016,33 @@ async function sendAIMessage() {
   addTypingIndicator();
 
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: buildSystemPrompt() }] },
-        contents: aiHistory,
-        generationConfig: { maxOutputTokens: 2000 }
+        model: 'llama3-70b-8192', // Usando Llama 3 70B de Groq
+        messages: [
+          { role: 'system', content: buildSystemPrompt() },
+          ...aiHistory
+        ],
+        temperature: 0.1
       })
     });
 
     const data = await response.json();
     removeTypingIndicator();
 
-    if (data.error) {
-      addAIMessage('assistant', '❌ Error: ' + (data.error.message || 'Error de API'));
-      showNotif('Error de API: ' + data.error.message, 'error');
+    if (!response.ok) {
+      addAIMessage('assistant', '❌ Error: ' + (data.error?.message || 'Error de API'));
+      showNotif('Error de API: ' + (data.error?.message || 'Desconocido'), 'error');
     } else {
-      const reply = data.candidates[0].content.parts[0].text;
-      aiHistory.push({ role: 'model', parts: [{ text: reply }] });
+      const reply = data.choices[0].message.content;
+      aiHistory.push({ role: 'assistant', content: reply });
       addAIMessage('assistant', reply);
 
-      // Check if AI generated CSV instructions
       if (reply.includes('CSV_GENERADO:')) {
         processAIGeneratedConfig(reply);
       }
@@ -1118,7 +1105,6 @@ function processAIGeneratedConfig(reply) {
     });
 
     if (Object.keys(config).length > 0 && csvDataAI.length > 0) {
-      // Apply config to the AI CSV data
       csvData = csvDataAI;
       csvHeaders = csvHeadersAI;
       csvRaw = '';
@@ -1127,12 +1113,10 @@ function processAIGeneratedConfig(reply) {
         prefixMap[p] = { ...prefixMap[p], ...config[p] };
       });
 
-      // Also update csvData stats
       document.getElementById('statRows').textContent = csvDataAI.length;
       document.getElementById('statPrefixes').textContent = Object.keys(config).length;
 
       generateCSV();
-      // Switch to manual tab to show result
       document.getElementById('tab-manual').classList.add('active');
       showNotif('✅ IA generó la configuración · CSV listo para descargar', 'success');
     }
@@ -1141,7 +1125,6 @@ function processAIGeneratedConfig(reply) {
   }
 }
 
-// Drag and drop
 const uploadZone = document.getElementById('uploadZone');
 uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('drag'); });
 uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag'));
@@ -1182,9 +1165,22 @@ function showNotif(text, type) {
   clearTimeout(n._timer);
   n._timer = setTimeout(() => n.classList.remove('show'), 3500);
 }
-// Conectamos todo el objeto window global para prevenir errores al llamar funciones desde HTML
-window.handleFileSelect = handleFile;
-window.processCSV = generateCSV;
+
+window.handleFile = handleFile;
+window.handleFileAI = handleFileAI;
+window.switchTab = switchTab;
+window.validateApiKey = validateApiKey;
+window.toggleApiKey = toggleApiKey;
+window.sendAIMessage = sendAIMessage;
+window.aiSuggest = aiSuggest;
+window.clearAIChat = clearAIChat;
+window.togglePrefix = togglePrefix;
+window.updatePrefixAccount = updatePrefixAccount;
+window.generateCSV = generateCSV;
+window.downloadCSV = downloadCSV;
+window.downloadAsCSV = downloadAsCSV;
+window.copyCSV = copyCSV;
+window.resetApp = resetApp;
 </script>
 </body>
 </html>
