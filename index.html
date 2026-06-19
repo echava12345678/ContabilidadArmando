@@ -1023,7 +1023,7 @@ async function sendAIMessage() {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'llama3-70b-8192', // Usando Llama 3 70B de Groq
+        model: 'llama-3.3-70b-versatile', // El nuevo modelo recomendado por Groq
         messages: [
           { role: 'system', content: buildSystemPrompt() },
           ...aiHistory
